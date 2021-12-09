@@ -53,10 +53,6 @@ printLines = \lines ->
 #   Day04Part1  #
 # # # # # # # # #
 
-numsToStr : List (Num *) -> Str
-numsToStr = \list ->
-    list |> List.map Num.toStr |> Str.joinWith ","
-
 resultToStr : Result ok AppError, (ok -> Str) -> Str
 resultToStr = \res, toStr ->
     when res is
@@ -83,3 +79,42 @@ find = \list, pred ->
 # $ roc repl
 # » Ok []
 # thread 'main' panicked at 'internal error: entered unreachable code: Something had a Struct layout, but instead of a Record type, it had: Structure(TagUnion(UnionTags { length: 1, tag_names_start: 37, variables_start: 36 }, 102))', cli/src/repl/eval.rs:482:13
+
+# # # # # # # # #
+#   Day04Part2  #
+# # # # # # # # #
+
+numsToStr : List (Num *) -> Str
+numsToStr = \nums ->
+    List.map nums Num.toStr |> Str.joinWith ","
+
+printNums : List (Num *) -> Task {} *
+printNums = \nums ->
+    Stdout.line (numsToStr nums)
+
+resultMapAndJoin : Result b a, (b -> a) -> a
+resultMapAndJoin = \res, fn ->
+    when res is
+        Err val -> val
+        Ok val -> fn val
+
+FoundAndOthers a : { found: a, others: List a }
+
+findAndPopLoop : List elem, List elem, (elem -> Bool) -> Result (FoundAndOthers elem) [ NotFound ]*
+findAndPopLoop = \acc, list, pred ->
+    { before, others: tl } = List.split list 1
+
+    when List.first before is
+        Err ListWasEmpty ->
+            Err NotFound
+
+        Ok found if pred found ->
+            Ok { found, others: List.concat acc tl }
+
+        Ok hd ->
+            List.append acc hd |> findAndPopLoop tl pred
+
+
+findAndPop : List elem, (elem -> Bool) -> Result (FoundAndOthers elem) [ NotFound ]*
+findAndPop = \list, pred ->
+    findAndPopLoop [] list pred
